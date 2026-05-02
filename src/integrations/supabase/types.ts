@@ -14,7 +14,103 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      farms: {
+        Row: {
+          created_at: string
+          crop_type: string
+          id: string
+          location: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crop_type?: string
+          id?: string
+          location?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crop_type?: string
+          id?: string
+          location?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      harvests: {
+        Row: {
+          created_at: string
+          date: string
+          farm_id: string
+          id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          farm_id: string
+          id?: string
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          farm_id?: string
+          id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "harvests_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      logs: {
+        Row: {
+          created_at: string
+          date: string
+          farm_id: string
+          growth_stage: string
+          id: string
+          sunlight_hours: number
+          water_level: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          farm_id: string
+          growth_stage?: string
+          id?: string
+          sunlight_hours?: number
+          water_level?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          farm_id?: string
+          growth_stage?: string
+          id?: string
+          sunlight_hours?: number
+          water_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
