@@ -21,7 +21,7 @@ export async function getAll<T extends TableName>(
 }
 
 export async function getById<T extends TableName>(table: T, id: string): Promise<Tables<T> | null> {
-  const { data, error } = await supabase.from(table).select("*").eq("id", id).maybeSingle();
+  const { data, error } = await (supabase.from(table) as any).select("*").eq("id", id).maybeSingle();
   if (error) throw error;
   return data as Tables<T> | null;
 }
@@ -40,9 +40,8 @@ export async function updateRecord<T extends TableName>(
   id: string,
   values: TablesUpdate<T>
 ): Promise<Tables<T>> {
-  const { data, error } = await supabase
-    .from(table)
-    .update(values as never)
+  const { data, error } = await (supabase.from(table) as any)
+    .update(values)
     .eq("id", id)
     .select()
     .single();
@@ -51,7 +50,7 @@ export async function updateRecord<T extends TableName>(
 }
 
 export async function deleteRecord(table: TableName, id: string): Promise<void> {
-  const { error } = await supabase.from(table).delete().eq("id", id);
+  const { error } = await (supabase.from(table) as any).delete().eq("id", id);
   if (error) throw error;
 }
 
