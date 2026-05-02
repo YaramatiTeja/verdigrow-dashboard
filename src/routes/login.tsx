@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -16,15 +17,29 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { user, signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) navigate({ to: "/dashboard" });
+  }, [user, navigate]);
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      toast.success("Welcome back to VertiGrow OS 🌿");
-      navigate({ to: "/dashboard" });
-    }, 800);
+    const { error } =
+      mode === "signin" ? await signIn(email, password) : await signUp(email, password);
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (mode === "signup") toast.success("Welcome to VertiGrow OS 🌿 — you're in!");
+    else toast.success("Welcome back 🌱");
+    navigate({ to: "/dashboard" });
   };
 
   return (
@@ -50,54 +65,38 @@ function LoginPage() {
         </div>
       </aside>
 
-      <main className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
+      <main className="relative flex min-h-screen items-center justify-center bg-background px-6 py-12">
         <div className="absolute right-6 top-6"><ThemeToggle /></div>
         <Card className="w-full max-w-md border-border/60 p-8 shadow-elegant">
           <div className="mb-6 lg:hidden"><Logo /></div>
-          <h1 className="font-display text-3xl font-bold">Welcome back</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">Sign in to monitor your rooftop farm.</p>
+          <h1 className="font-display text-3xl font-bold">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {mode === "signin" ? "Sign in to monitor your rooftop farm." : "Start growing fresh in minutes."}
+          </p>
 
-          <Tabs defaultValue="signin" className="mt-7">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")} className="mt-7">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign in</TabsTrigger>
               <TabsTrigger value="signup">Create account</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="signin" className="mt-6">
-              <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="chef@restaurant.com" required defaultValue="demo@vertigrow.os" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" placeholder="••••••••" required defaultValue="demo1234" />
-                </div>
-                <Button type="submit" disabled={loading} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
-                  {loading ? "Signing in…" : <>Sign in <ArrowRight className="ml-1.5 h-4 w-4" /></>}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup" className="mt-6">
-              <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Restaurant name</Label>
-                  <Input id="name" placeholder="Rooftop & Co." required />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="email2">Email</Label>
-                  <Input id="email2" type="email" placeholder="chef@restaurant.com" required />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password2">Password</Label>
-                  <Input id="password2" type="password" placeholder="At least 8 characters" required />
-                </div>
-                <Button type="submit" disabled={loading} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
-                  {loading ? "Creating…" : "Create account"}
-                </Button>
-              </form>
-            </TabsContent>
+            {(["signin", "signup"] as const).map((m) => (
+              <TabsContent key={m} value={m} className="mt-6">
+                <form onSubmit={submit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`email-${m}`}>Email</Label>
+                    <Input id={`email-${m}`} type="email" placeholder="chef@restaurant.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`pw-${m}`}>Password</Label>
+                    <Input id={`pw-${m}`} type="password" placeholder={m === "signup" ? "At least 8 characters" : "••••••••"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
+                  <Button type="submit" disabled={loading} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
+                    {loading ? "Please wait…" : m === "signin" ? <>Sign in <ArrowRight className="ml-1.5 h-4 w-4" /></> : "Create account"}
+                  </Button>
+                </form>
+              </TabsContent>
+            ))}
           </Tabs>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
