@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Droplets, Sun, Sprout, Bell, AlertTriangle, CheckCircle2, Leaf, TrendingUp } from "lucide-react";
+import { Droplets, Sun, Sprout, Bell, AlertTriangle, CheckCircle2, Leaf, TrendingUp, Building2, Wheat } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,12 +8,18 @@ import { listFarms, listLogs, listHarvests } from "@/services/db";
 import { EmptyState } from "./EmptyState";
 
 export function OverviewView() {
-  const { data: farms = [] } = useQuery({ queryKey: ["farms-list"], queryFn: () => listFarms() });
-  const { data: logs = [] } = useQuery({ queryKey: ["logs", "all", "", "", 0], queryFn: () => listLogs({ limit: 8, offset: 0 }) });
+  const { data: farms = [], isLoading: loadingFarms } = useQuery({ queryKey: ["farms-list"], queryFn: () => listFarms() });
+  const { data: logs = [], isLoading: loadingLogs } = useQuery({ queryKey: ["logs", "all", "", "", 0], queryFn: () => listLogs({ limit: 8, offset: 0 }) });
+  const { data: allLogs = [] } = useQuery({ queryKey: ["logs-all-stats"], queryFn: () => listLogs({ limit: 500, offset: 0 }) });
   const { data: harvests = [] } = useQuery({ queryKey: ["harvests", "all", "", "", 0], queryFn: () => listHarvests({ limit: 50, offset: 0 }) });
 
   const latest = logs[0];
   const totalG = useMemo(() => harvests.reduce((s, h) => s + (h.quantity ?? 0), 0), [harvests]);
+  const avgWater = useMemo(() => {
+    if (allLogs.length === 0) return 0;
+    return Math.round(allLogs.reduce((s, l) => s + (l.water_level ?? 0), 0) / allLogs.length);
+  }, [allLogs]);
+  const loading = loadingFarms || loadingLogs;
 
   const alerts = useMemo(() => {
     const arr: { tone: "warning" | "success" | "info"; title: string; desc: string; icon: typeof AlertTriangle }[] = [];
@@ -24,12 +30,24 @@ export function OverviewView() {
     return arr.slice(0, 5);
   }, [logs]);
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="border-border/60 p-6"><div className="h-24 animate-pulse rounded bg-muted" /></Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (farms.length === 0) {
     return (
       <EmptyState
         icon={Sprout}
         title="Welcome to VertiGrow OS 🌿"
-        description="Get started by adding your first rooftop farm. Once you've added a farm you can log conditions and track harvests."
+        description="No farms added yet 🌱 — get started by adding your first rooftop farm."
       />
     );
   }
@@ -41,6 +59,14 @@ export function OverviewView() {
         <p className="text-sm text-muted-foreground">A quick pulse on every tower you grow.</p>
       </div>
 
+      {/* Summary analytics */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <SummaryCard icon={Building2} label="Total farms" value={String(farms.length)} tone="emerald" />
+        <SummaryCard icon={Wheat} label="Total harvested" value={`${totalG} g`} tone="amber" />
+        <SummaryCard icon={Droplets} label="Avg water level" value={`${avgWater}%`} tone="sky" />
+      </div>
+
+      {/* Latest reading */}
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard icon={Droplets} label="Water level" value={latest ? `${latest.water_level}%` : "—"} progress={latest?.water_level ?? 0} tone="sky" />
         <StatCard icon={Sun} label="Sunlight today" value={latest ? `${latest.sunlight_hours} hrs` : "—"} progress={latest ? Math.min(100, latest.sunlight_hours * 8) : 0} tone="amber" />
@@ -114,6 +140,27 @@ function StatCard({ icon: Icon, label, value, progress, tone }: { icon: any; lab
         <div className="font-display text-4xl font-bold">{value}</div>
       </div>
       <Progress value={progress} className="mt-4 h-1.5" />
+    </Card>
+  );
+}
+
+function SummaryCard({ icon: Icon, label, value, tone }: { icon: any; label: string; value: string; tone: "sky" | "amber" | "emerald" }) {
+  const tones = {
+    sky: "from-sky-400 to-cyan-500",
+    amber: "from-amber-400 to-orange-500",
+    emerald: "from-emerald-400 to-teal-500",
+  } as const;
+  return (
+    <Card className="group border-border/60 p-6 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-elegant">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm text-muted-foreground">{label}</div>
+          <div className="font-display text-3xl font-bold mt-1">{value}</div>
+        </div>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${tones[tone]} text-white shadow-md transition-transform group-hover:scale-110`}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
     </Card>
   );
 }

@@ -107,7 +107,13 @@ export function LogsView() {
       </Card>
 
       {isLoading ? (
-        <Card className="p-6"><div className="h-40 animate-pulse rounded bg-muted" /></Card>
+        <Card className="overflow-hidden border-border/60 shadow-card">
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-10 animate-pulse rounded bg-muted/60" />
+            ))}
+          </div>
+        </Card>
       ) : noFarms ? (
         <EmptyState icon={FileText} title="No farms yet" description="You need at least one farm before adding logs." />
       ) : !logs || logs.length === 0 ? (
@@ -130,7 +136,10 @@ export function LogsView() {
                 <TableRow key={log.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">{log.date}</TableCell>
                   <TableCell className="text-muted-foreground">{log.farms?.name ?? "—"}</TableCell>
-                  <TableCell><span className="font-medium tabular-nums">{log.water_level}%</span></TableCell>
+                  <TableCell>
+                    <span className="font-medium tabular-nums mr-2">{log.water_level}%</span>
+                    <WaterBadge level={log.water_level} />
+                  </TableCell>
                   <TableCell><span className="tabular-nums">{log.sunlight_hours} hrs</span></TableCell>
                   <TableCell><Badge variant="secondary" className="border-0 bg-primary/10 text-primary">{log.growth_stage}</Badge></TableCell>
                   <TableCell className="text-right">
@@ -170,6 +179,12 @@ export function LogsView() {
       )}
     </div>
   );
+}
+
+function WaterBadge({ level }: { level: number }) {
+  if (level > 60) return <Badge className="border-0 bg-success/15 text-success hover:bg-success/20">Good</Badge>;
+  if (level >= 30) return <Badge className="border-0 bg-warning/15 text-warning hover:bg-warning/20">Moderate</Badge>;
+  return <Badge className="border-0 bg-destructive/15 text-destructive hover:bg-destructive/20">Low</Badge>;
 }
 
 function LogDialog({ editing, farms, onSubmit, loading }: { editing: Log | null; farms: Tables<"farms">[]; onSubmit: (v: { id?: string; farm_id: string; water_level: number; sunlight_hours: number; growth_stage: string; date: string }) => void; loading: boolean }) {
