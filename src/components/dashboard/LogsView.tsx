@@ -175,6 +175,12 @@ export function LogsView() {
   );
 }
 
+function WaterBadge({ level }: { level: number }) {
+  if (level > 60) return <Badge className="border-0 bg-success/15 text-success hover:bg-success/20">Good</Badge>;
+  if (level >= 30) return <Badge className="border-0 bg-warning/15 text-warning hover:bg-warning/20">Moderate</Badge>;
+  return <Badge className="border-0 bg-destructive/15 text-destructive hover:bg-destructive/20">Low</Badge>;
+}
+
 function LogDialog({ editing, farms, onSubmit, loading }: { editing: Log | null; farms: Tables<"farms">[]; onSubmit: (v: { id?: string; farm_id: string; water_level: number; sunlight_hours: number; growth_stage: string; date: string }) => void; loading: boolean }) {
   const [farmId, setFarmId] = useState(editing?.farm_id ?? farms[0]?.id ?? "");
   const [water, setWater] = useState(String(editing?.water_level ?? 70));
