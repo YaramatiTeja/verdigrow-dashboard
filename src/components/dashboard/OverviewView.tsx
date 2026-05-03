@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Droplets, Sun, Sprout, Bell, AlertTriangle, CheckCircle2, Leaf, TrendingUp } from "lucide-react";
+import { Droplets, Sun, Sprout, Bell, AlertTriangle, CheckCircle2, Leaf, TrendingUp, Building2, Wheat } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,12 +8,18 @@ import { listFarms, listLogs, listHarvests } from "@/services/db";
 import { EmptyState } from "./EmptyState";
 
 export function OverviewView() {
-  const { data: farms = [] } = useQuery({ queryKey: ["farms-list"], queryFn: () => listFarms() });
-  const { data: logs = [] } = useQuery({ queryKey: ["logs", "all", "", "", 0], queryFn: () => listLogs({ limit: 8, offset: 0 }) });
+  const { data: farms = [], isLoading: loadingFarms } = useQuery({ queryKey: ["farms-list"], queryFn: () => listFarms() });
+  const { data: logs = [], isLoading: loadingLogs } = useQuery({ queryKey: ["logs", "all", "", "", 0], queryFn: () => listLogs({ limit: 8, offset: 0 }) });
+  const { data: allLogs = [] } = useQuery({ queryKey: ["logs-all-stats"], queryFn: () => listLogs({ limit: 500, offset: 0 }) });
   const { data: harvests = [] } = useQuery({ queryKey: ["harvests", "all", "", "", 0], queryFn: () => listHarvests({ limit: 50, offset: 0 }) });
 
   const latest = logs[0];
   const totalG = useMemo(() => harvests.reduce((s, h) => s + (h.quantity ?? 0), 0), [harvests]);
+  const avgWater = useMemo(() => {
+    if (allLogs.length === 0) return 0;
+    return Math.round(allLogs.reduce((s, l) => s + (l.water_level ?? 0), 0) / allLogs.length);
+  }, [allLogs]);
+  const loading = loadingFarms || loadingLogs;
 
   const alerts = useMemo(() => {
     const arr: { tone: "warning" | "success" | "info"; title: string; desc: string; icon: typeof AlertTriangle }[] = [];
