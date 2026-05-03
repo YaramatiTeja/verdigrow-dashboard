@@ -30,12 +30,24 @@ export function OverviewView() {
     return arr.slice(0, 5);
   }, [logs]);
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="border-border/60 p-6"><div className="h-24 animate-pulse rounded bg-muted" /></Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (farms.length === 0) {
     return (
       <EmptyState
         icon={Sprout}
         title="Welcome to VertiGrow OS 🌿"
-        description="Get started by adding your first rooftop farm. Once you've added a farm you can log conditions and track harvests."
+        description="No farms added yet 🌱 — get started by adding your first rooftop farm."
       />
     );
   }
@@ -47,6 +59,14 @@ export function OverviewView() {
         <p className="text-sm text-muted-foreground">A quick pulse on every tower you grow.</p>
       </div>
 
+      {/* Summary analytics */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <SummaryCard icon={Building2} label="Total farms" value={String(farms.length)} tone="emerald" />
+        <SummaryCard icon={Wheat} label="Total harvested" value={`${totalG} g`} tone="amber" />
+        <SummaryCard icon={Droplets} label="Avg water level" value={`${avgWater}%`} tone="sky" />
+      </div>
+
+      {/* Latest reading */}
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard icon={Droplets} label="Water level" value={latest ? `${latest.water_level}%` : "—"} progress={latest?.water_level ?? 0} tone="sky" />
         <StatCard icon={Sun} label="Sunlight today" value={latest ? `${latest.sunlight_hours} hrs` : "—"} progress={latest ? Math.min(100, latest.sunlight_hours * 8) : 0} tone="amber" />
