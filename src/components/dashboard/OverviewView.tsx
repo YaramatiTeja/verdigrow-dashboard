@@ -144,6 +144,26 @@ function StatCard({ icon: Icon, label, value, progress, tone }: { icon: any; lab
   );
 }
 
+function SummaryCard({ icon: Icon, label, value, tone }: { icon: any; label: string; value: string; tone: "sky" | "amber" | "emerald" }) {
+  const tones = {
+    sky: "from-sky-400 to-cyan-500",
+    amber: "from-amber-400 to-orange-500",
+    emerald: "from-emerald-400 to-teal-500",
+  } as const;
+  return (
+    <Card className="group border-border/60 p-6 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-elegant">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm text-muted-foreground">{label}</div>
+          <div className="font-display text-3xl font-bold mt-1">{value}</div>
+        </div>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${tones[tone]} text-white shadow-md transition-transform group-hover:scale-110`}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </Card>
+  );
+
 function AlertItem({ icon: Icon, title, desc, tone }: { icon: any; title: string; desc: string; tone: "warning" | "success" | "info" }) {
   const tones = {
     warning: "bg-warning/15 text-warning",
