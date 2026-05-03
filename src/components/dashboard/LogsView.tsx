@@ -107,7 +107,13 @@ export function LogsView() {
       </Card>
 
       {isLoading ? (
-        <Card className="p-6"><div className="h-40 animate-pulse rounded bg-muted" /></Card>
+        <Card className="overflow-hidden border-border/60 shadow-card">
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-10 animate-pulse rounded bg-muted/60" />
+            ))}
+          </div>
+        </Card>
       ) : noFarms ? (
         <EmptyState icon={FileText} title="No farms yet" description="You need at least one farm before adding logs." />
       ) : !logs || logs.length === 0 ? (
