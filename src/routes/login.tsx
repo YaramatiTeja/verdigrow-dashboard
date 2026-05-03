@@ -22,6 +22,7 @@ function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
 
   useEffect(() => {
     if (user) navigate({ to: "/dashboard" });
@@ -31,7 +32,7 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     const { error } =
-      mode === "signin" ? await signIn(email, password) : await signUp(email, password);
+      mode === "signin" ? await signIn(email, password) : await signUp(email, password, name);
     setLoading(false);
     if (error) {
       toast.error(error.message);
@@ -83,6 +84,12 @@ function LoginPage() {
             {(["signin", "signup"] as const).map((m) => (
               <TabsContent key={m} value={m} className="mt-6">
                 <form onSubmit={submit} className="space-y-4">
+                  {m === "signup" && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`name-${m}`}>Name</Label>
+                      <Input id={`name-${m}`} type="text" placeholder="Your name" required value={name} onChange={(e) => setName(e.target.value)} />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <Label htmlFor={`email-${m}`}>Email</Label>
                     <Input id={`email-${m}`} type="email" placeholder="chef@restaurant.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
