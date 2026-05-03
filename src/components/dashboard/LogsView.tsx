@@ -130,7 +130,10 @@ export function LogsView() {
                 <TableRow key={log.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">{log.date}</TableCell>
                   <TableCell className="text-muted-foreground">{log.farms?.name ?? "—"}</TableCell>
-                  <TableCell><span className="font-medium tabular-nums">{log.water_level}%</span></TableCell>
+                  <TableCell>
+                    <span className="font-medium tabular-nums mr-2">{log.water_level}%</span>
+                    <WaterBadge level={log.water_level} />
+                  </TableCell>
                   <TableCell><span className="tabular-nums">{log.sunlight_hours} hrs</span></TableCell>
                   <TableCell><Badge variant="secondary" className="border-0 bg-primary/10 text-primary">{log.growth_stage}</Badge></TableCell>
                   <TableCell className="text-right">
