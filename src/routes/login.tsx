@@ -17,33 +17,40 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { user, signIn, signUp } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { user, loading, signIn, signUp } = useAuth();
+  const [formLoading, setFormLoading] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       console.log("[Login] User authenticated, redirecting to dashboard");
       navigate({ to: "/dashboard" });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (formLoading) return; // Prevent double submission
+    
+    setFormLoading(true);
     try {
+      console.log(`[Login] Attempting to ${mode} with email: ${email}`);
+      
       const { error } =
         mode === "signin" ? await signIn(email, password) : await signUp(email, password, name);
       
       if (error) {
+        console.error(`[Login] ${mode} failed:`, error);
         toast.error(error.message || "Authentication failed");
-        setLoading(false);
+        setFormLoading(false);
         return;
       }
 
+      console.log(`[Login] ${mode} successful, waiting for auth state update...`);
+      
       if (mode === "signup") {
         toast.success("Welcome to VertiGrow OS 🌿 — you're in!");
       } else {
@@ -51,13 +58,13 @@ function LoginPage() {
       }
 
       // Wait a bit for auth state listener to update
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       navigate({ to: "/dashboard" });
     } catch (err) {
-      console.error("Authentication error:", err);
-      toast.error("An unexpected error occurred");
-      setLoading(false);
+      console.error("[Login] Unexpected error:", err);
+      toast.error("An unexpected error occurred. Check the console for details.");
+      setFormLoading(false);
     }
   };
 
@@ -116,8 +123,8 @@ function LoginPage() {
                     <Label htmlFor={`pw-${m}`}>Password</Label>
                     <Input id={`pw-${m}`} type="password" placeholder={m === "signup" ? "At least 8 characters" : "••••••••"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
-                    {loading ? "Please wait…" : m === "signin" ? <>Sign in <ArrowRight className="ml-1.5 h-4 w-4" /></> : "Create account"}
+                  <Button type="submit" disabled={formLoading} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
+                    {formLoading ? "Please wait…" : m === "signin" ? <>Sign in <ArrowRight className="ml-1.5 h-4 w-4" /></> : "Create account"}
                   </Button>
                 </form>
               </TabsContent>

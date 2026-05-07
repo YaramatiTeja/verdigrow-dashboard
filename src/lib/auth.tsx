@@ -17,27 +17,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Set up listener BEFORE getting session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      console.log("[Auth] State changed:", _event, s?.user?.id);
-      setSession(s);
-      setUser(s?.user ?? null);
-    });
+    let mounted = true;
+    let subscription: ReturnType<typeof supabase.auth.onAuthStateChange>['data']['subscription'] | null = null;
 
-    supabase.auth.getSession().then(({ data: { session: s }, error }) => {
-      if (error) {
-        console.error("[Auth] Error getting session:", error);
-      } else {
-        console.log("[Auth] Initial session loaded:", s?.user?.id);
+    const initAuth = async () => {
+      try {
+        // Set up listener BEFORE getting session
+        const { data } = supabase.auth.onAuthStateChange((_event, s) => {
+          if (mounted) {
+            console.log("[Auth] State changed:", _event, s?.user?.id);
+            setSession(s);
+            setUser(s?.user ?? null);
+          }
+        });
+        subscription = data.subscription;
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (mounted) {
+          if (sessionError) {
+            console.error("[Auth] Error getting session:", sessionError);
+            setError(sessionError);
+          } else {
+            console.log("[Auth] Initial session loaded:", sessionData.session?.user?.id);
+            setSession(sessionData.session);
+            setUser(sessionData.session?.user ?? null);
+          }
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("[Auth] Initialization error:", err);
+        if (mounted) {
+          setError(err as Error);
+          setLoading(false);
+        }
       }
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initAuth();
+
+    return () => {
+      mounted = false;
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -51,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error };
     } catch (err) {
       console.error("[Auth] Sign in exception:", err);
-      return { error: err as Error };
+      const error = err as Error;
+      return { error };
     }
   };
 
@@ -73,7 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error };
     } catch (err) {
       console.error("[Auth] Sign up exception:", err);
-      return { error: err as Error };
+      const error = err as Error;
+      return { error };
     }
   };
 
