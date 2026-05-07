@@ -21,11 +21,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up listener BEFORE getting session
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      console.log("[Auth] State changed:", _event, s?.user?.id);
       setSession(s);
       setUser(s?.user ?? null);
     });
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(({ data: { session: s }, error }) => {
+      if (error) {
+        console.error("[Auth] Error getting session:", error);
+      } else {
+        console.log("[Auth] Initial session loaded:", s?.user?.id);
+      }
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
@@ -35,24 +41,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error("[Auth] Sign in error:", error.message);
+      } else {
+        console.log("[Auth] Sign in successful:", data.user?.id);
+      }
+      return { error };
+    } catch (err) {
+      console.error("[Auth] Sign in exception:", err);
+      return { error: err as Error };
+    }
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: name ? { name } : undefined,
-      },
-    });
-    return { error };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: name ? { name } : undefined,
+        },
+      });
+      if (error) {
+        console.error("[Auth] Sign up error:", error.message);
+      } else {
+        console.log("[Auth] Sign up successful:", data.user?.id);
+      }
+      return { error };
+    } catch (err) {
+      console.error("[Auth] Sign up exception:", err);
+      return { error: err as Error };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("[Auth] Sign out error:", error.message);
+      } else {
+        console.log("[Auth] Sign out successful");
+      }
+    } catch (err) {
+      console.error("[Auth] Sign out exception:", err);
+    }
   };
 
   return (

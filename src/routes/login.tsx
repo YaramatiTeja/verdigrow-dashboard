@@ -25,22 +25,40 @@ function LoginPage() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    if (user) navigate({ to: "/dashboard" });
+    if (user) {
+      console.log("[Login] User authenticated, redirecting to dashboard");
+      navigate({ to: "/dashboard" });
+    }
   }, [user, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } =
-      mode === "signin" ? await signIn(email, password) : await signUp(email, password, name);
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const { error } =
+        mode === "signin" ? await signIn(email, password) : await signUp(email, password, name);
+      
+      if (error) {
+        toast.error(error.message || "Authentication failed");
+        setLoading(false);
+        return;
+      }
+
+      if (mode === "signup") {
+        toast.success("Welcome to VertiGrow OS 🌿 — you're in!");
+      } else {
+        toast.success("Welcome back 🌱");
+      }
+
+      // Wait a bit for auth state listener to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      console.error("Authentication error:", err);
+      toast.error("An unexpected error occurred");
+      setLoading(false);
     }
-    if (mode === "signup") toast.success("Welcome to VertiGrow OS 🌿 — you're in!");
-    else toast.success("Welcome back 🌱");
-    navigate({ to: "/dashboard" });
   };
 
   return (

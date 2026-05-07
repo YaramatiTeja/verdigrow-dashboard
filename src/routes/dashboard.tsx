@@ -25,7 +25,12 @@ function DashboardPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) {
+      console.log("[Dashboard] No user, redirecting to login");
+      navigate({ to: "/login" });
+    } else if (user) {
+      console.log("[Dashboard] User authenticated:", user.id);
+    }
   }, [loading, user, navigate]);
 
   if (loading || !user) {
