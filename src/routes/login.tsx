@@ -93,6 +93,16 @@ function LoginPage() {
 
       <main className="relative flex min-h-screen items-center justify-center bg-background px-6 py-12">
         <div className="absolute right-6 top-6"><ThemeToggle /></div>
+        
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+              <p className="text-sm text-muted-foreground">Initializing authentication...</p>
+            </div>
+          </div>
+        )}
+        
         <Card className="w-full max-w-md border-border/60 p-8 shadow-elegant">
           <div className="mb-6 lg:hidden"><Logo /></div>
           <h1 className="font-display text-3xl font-bold">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
@@ -100,10 +110,10 @@ function LoginPage() {
             {mode === "signin" ? "Sign in to monitor your rooftop farm." : "Start growing fresh in minutes."}
           </p>
 
-          <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")} className="mt-7">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")} className="mt-7" disabled={loading || formLoading}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Create account</TabsTrigger>
+              <TabsTrigger value="signin" disabled={loading || formLoading}>Sign in</TabsTrigger>
+              <TabsTrigger value="signup" disabled={loading || formLoading}>Create account</TabsTrigger>
             </TabsList>
 
             {(["signin", "signup"] as const).map((m) => (
@@ -112,18 +122,43 @@ function LoginPage() {
                   {m === "signup" && (
                     <div className="space-y-1.5">
                       <Label htmlFor={`name-${m}`}>Name</Label>
-                      <Input id={`name-${m}`} type="text" placeholder="Your name" required value={name} onChange={(e) => setName(e.target.value)} />
+                      <Input 
+                        id={`name-${m}`} 
+                        type="text" 
+                        placeholder="Your name" 
+                        required 
+                        disabled={loading || formLoading}
+                        value={name} 
+                        onChange={(e) => setName(e.target.value)} 
+                      />
                     </div>
                   )}
                   <div className="space-y-1.5">
                     <Label htmlFor={`email-${m}`}>Email</Label>
-                    <Input id={`email-${m}`} type="email" placeholder="chef@restaurant.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Input 
+                      id={`email-${m}`} 
+                      type="email" 
+                      placeholder="chef@restaurant.com" 
+                      required 
+                      disabled={loading || formLoading}
+                      value={email} 
+                      onChange={(e) => setEmail(e.target.value)} 
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor={`pw-${m}`}>Password</Label>
-                    <Input id={`pw-${m}`} type="password" placeholder={m === "signup" ? "At least 8 characters" : "••••••••"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <Input 
+                      id={`pw-${m}`} 
+                      type="password" 
+                      placeholder={m === "signup" ? "At least 8 characters" : "••••••••"} 
+                      required 
+                      minLength={6} 
+                      disabled={loading || formLoading}
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)} 
+                    />
                   </div>
-                  <Button type="submit" disabled={formLoading} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
+                  <Button type="submit" disabled={formLoading || loading} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
                     {formLoading ? "Please wait…" : m === "signin" ? <>Sign in <ArrowRight className="ml-1.5 h-4 w-4" /></> : "Create account"}
                   </Button>
                 </form>
