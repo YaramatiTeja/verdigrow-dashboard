@@ -16,105 +16,77 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    let subscription: ReturnType<typeof supabase.auth.onAuthStateChange>['data']['subscription'] | null = null;
-    let timeoutId: NodeJS.Timeout | null = null;
+    // Use setTimeout to ensure this runs after render
+    const timeoutId = setTimeout(() => {
+      initAuth();
+    }, 0);
 
-    const initAuth = async () => {
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const initAuth = async () => {
+    try {
+      console.log("[Auth] Initializing auth...");
+      
+      if (!supabase || !supabase.auth) {
+        console.warn("[Auth] Supabase not available");
+        return;
+      }
+
+      // Set up listener
       try {
-        console.log("[Auth] Starting initialization...");
-        
-        // Set up listener first (non-blocking)
-        try {
-          const { data } = supabase.auth.onAuthStateChange((_event, s) => {
-            if (mounted) {
-              console.log("[Auth] State changed:", _event, s?.user?.id);
-              setSession(s);
-              setUser(s?.user ?? null);
-            }
-          });
-          subscription = data.subscription;
-          console.log("[Auth] Auth state listener registered");
-        } catch (err) {
-          console.error("[Auth] Failed to register listener:", err);
-        }
-
-        // Get session with timeout to prevent hanging
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error("Session fetch timeout")), 5000);
+        const { data } = supabase.auth.onAuthStateChange((_event, s) => {
+          console.log("[Auth] State changed:", _event);
+          setSession(s);
+          setUser(s?.user ?? null);
         });
 
+        // Get initial session with timeout
         try {
-          const { data: sessionData, error: sessionError } = await Promise.race([
-            sessionPromise,
-            timeoutPromise as Promise<any>
-          ]);
+          const result = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error("timeout")), 5000)
+            ),
+          ]) as any;
 
-          if (timeoutId) clearTimeout(timeoutId);
-
-          if (mounted) {
-            if (sessionError) {
-              console.error("[Auth] Error getting session:", sessionError);
-              setError(sessionError);
-            } else {
-              console.log("[Auth] Initial session loaded:", sessionData?.session?.user?.id);
-              setSession(sessionData?.session ?? null);
-              setUser(sessionData?.session?.user ?? null);
-            }
-            setLoading(false);
-          }
-        } catch (timeoutErr) {
-          if (mounted) {
-            console.warn("[Auth] Session fetch timed out, continuing anyway");
-            setLoading(false);
-          }
-          if (timeoutId) clearTimeout(timeoutId);
+          console.log("[Auth] Session loaded");
+          setSession(result?.data?.session ?? null);
+          setUser(result?.data?.session?.user ?? null);
+        } catch (err) {
+          console.warn("[Auth] Could not get session");
         }
+
+        return () => data.subscription?.unsubscribe();
       } catch (err) {
-        console.error("[Auth] Initialization error:", err);
-        if (mounted) {
-          setError(err as Error);
-          setLoading(false);
-        }
+        console.error("[Auth] Failed to setup listener:", err);
       }
-    };
-
-    // Start initialization but don't block rendering
-    initAuth();
-
-    return () => {
-      mounted = false;
-      if (subscription) subscription.unsubscribe();
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, []);
+    } catch (err) {
+      console.error("[Auth] Init failed:", err);
+    }
+  };
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log("[Auth] Signing in with email:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        console.error("[Auth] Sign in error:", error.message);
-      } else {
-        console.log("[Auth] Sign in successful:", data.user?.id);
+      if (!supabase?.auth) {
+        return { error: new Error('Supabase not initialized') };
       }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       return { error };
     } catch (err) {
-      console.error("[Auth] Sign in exception:", err);
-      const error = err as Error;
-      return { error };
+      return { error: err as Error };
     }
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
     try {
-      console.log("[Auth] Signing up with email:", email);
-      const { data, error } = await supabase.auth.signUp({
+      if (!supabase?.auth) {
+        return { error: new Error('Supabase not initialized') };
+      }
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -122,30 +94,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: name ? { name } : undefined,
         },
       });
-      if (error) {
-        console.error("[Auth] Sign up error:", error.message);
-      } else {
-        console.log("[Auth] Sign up successful:", data.user?.id);
-      }
       return { error };
     } catch (err) {
-      console.error("[Auth] Sign up exception:", err);
-      const error = err as Error;
-      return { error };
+      return { error: err as Error };
     }
   };
 
   const signOut = async () => {
     try {
-      console.log("[Auth] Signing out");
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("[Auth] Sign out error:", error.message);
-      } else {
-        console.log("[Auth] Sign out successful");
-      }
+      if (!supabase?.auth) return;
+      await supabase.auth.signOut();
     } catch (err) {
-      console.error("[Auth] Sign out exception:", err);
+      console.error("[Auth] Sign out failed:", err);
     }
   };
 

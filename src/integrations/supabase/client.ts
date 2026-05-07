@@ -2,24 +2,25 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-function createSupabaseClient() {
+let _supabase: ReturnType<typeof createClient<Database>> | null = null;
+
+export function getSupabaseClient() {
+  if (_supabase) {
+    return _supabase;
+  }
+
   try {
-    // Use import.meta.env for client-side (Vite build-time replacement)
-    // Fall back to process.env for SSR (server-side rendering)
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-      const missing = [
-        ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-        ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-      ];
-      const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-      console.error(`[Supabase] ${message}`);
-      throw new Error(message);
+      console.error('[Supabase] Missing environment variables');
+      console.error('[Supabase] VITE_SUPABASE_URL:', SUPABASE_URL ? '✓' : '✗');
+      console.error('[Supabase] VITE_SUPABASE_PUBLISHABLE_KEY:', SUPABASE_PUBLISHABLE_KEY ? '✓' : '✗');
+      return null;
     }
 
-    const client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         storage: typeof window !== 'undefined' ? localStorage : undefined,
         persistSession: true,
@@ -27,34 +28,23 @@ function createSupabaseClient() {
       }
     });
 
-    console.log('[Supabase] Client initialized successfully');
-    return client;
+    console.log('[Supabase] Client initialized');
+    return _supabase;
   } catch (error) {
-    console.error('[Supabase] Failed to initialize client:', error);
-    throw error;
+    console.error('[Supabase] Initialization error:', error);
+    return null;
   }
 }
 
-let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
-let _initError: Error | undefined;
-
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>, {
-  get(_, prop, receiver) {
-    try {
-      if (!_supabase && !_initError) {
-        _supabase = createSupabaseClient();
-      }
-      if (_initError) {
-        throw _initError;
-      }
-      return Reflect.get(_supabase!, prop, receiver);
-    } catch (error) {
-      _initError = error as Error;
-      console.error('[Supabase] Client access failed:', error);
-      throw error;
+// Create a proxy that safely returns null instead of throwing
+export const supabase = new Proxy({}, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    if (!client) {
+      console.warn(`[Supabase] Client not available, cannot access: ${String(prop)}`);
+      return undefined;
     }
-  },
-});
+    return Reflect.get(client, prop);
+  }
+}) as unknown as ReturnType<typeof createClient<Database>>;
 
